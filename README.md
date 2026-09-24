@@ -19,14 +19,17 @@ projet-belib-mongodb/
 │   ├── belib_temps_reel.json            # jeu de données brut (1970 points de charge)
 │   ├── synthese_arrondissements.json    # export de la synthèse produite au TP3
 │   ├── belib_clean.jsonl                # données nettoyées, 1 document JSON par ligne (entrée MapReduce)
-│   └── resultat_dispo_hadoop.tsv        # résultat du job MapReduce
+│   ├── resultat_dispo_hadoop.tsv        # résultat du job MapReduce Python (TP4)
+│   ├── paniers_stations.txt             # 1 ligne = 1 station = statuts de ses prises (TP5)
+│   └── resultat_cooccurrence_java.tsv   # résultat du job MapReduce Java (TP5)
 ├── docker/                              # cluster Hadoop pseudo-distribué (Dockerfile, docker-compose, conf XML)
 ├── scripts/
 │   ├── mongodb/
 │   │   ├── tp1_exploration_belib.js
 │   │   ├── tp2_nettoyage_belib.js
 │   │   └── tp3_agregations_index_geo.js
-│   └── hadoop/                          # mappers / reducers Python + guide du TP4
+│   └── hadoop/                          # mappers / reducers Python (TP4), guides TP4 et TP5
+│       └── java/                        # original/ (code de cours) et belib/ (version adaptée)
 └── README.md
 ```
 
@@ -78,6 +81,33 @@ Filtres (`find`, `$in`, regex), projections, tri, `distinct` et premières agré
 | Job 2 : points par statut (équivalent du WordCount) | `mapred streaming` | Disponible 1138, Occupé 734, Maintenance 49, Inconnu 37 |
 
 **Conclusion :** MongoDB, le pipeline local et Hadoop donnent exactement les mêmes résultats. Sur un volume aussi petit (1,6 Mo), MongoDB répond en quelques millisecondes, alors qu'un job Hadoop prend environ 25 s à cause du lancement des conteneurs YARN. Hadoop devient intéressant quand les données dépassent la capacité d'une seule machine (de l'ordre du To) : le traitement est alors distribué et tolérant aux pannes.
+
+## TP5 : MapReduce en Java, co-occurrence des statuts par station
+
+Il s'agit de l'adaptation d'un job classique « produits achetés ensemble » (`java/original/`) aux données Belib' (`java/belib/`). Chaque ligne d'entrée représente une station, avec la liste des statuts de ses prises. Pour chaque statut, le job compte les statuts des **autres prises de la même station**.
+
+**Corrections apportées au code d'origine :**
+- le mapper émet les deux sens (`j != i`), ce qui rend la relation symétrique ;
+- les chemins sont passés en arguments ;
+- le driver utilise `getConf()` et déclare les classes de sortie ;
+- un seul reducer produit un seul fichier de sortie ;
+- le reducer utilise un `StringBuilder` et affiche les compteurs.
+
+```
+javac -cp "$(hadoop classpath)" -d classes belib/*.java && jar cf cooc-belib.jar -C classes .
+hadoop jar cooc-belib.jar CoocDriver /belib/cooc/input /belib/cooc/output
+```
+
+| Statut d'une prise | Statuts des autres prises de la station |
+|---|---|
+| Disponible | Disponible 3096, Occupé 1541, En maintenance 119, Inconnu 10 |
+| En maintenance | Disponible 119, Occupé 69, En maintenance 18 |
+| Inconnu | **Inconnu 114**, Disponible 10, Occupé 6 |
+| Occupé (en charge) | Occupé 1602, Disponible 1541, En maintenance 69, Inconnu 6 |
+
+**Interprétation :**
+- **Statut Inconnu :** quand une prise est *Inconnu*, 88 % des autres prises de la même station le sont aussi. Les pertes de communication touchent donc **des stations entières**.
+- **Maintenance :** les autres prises restent majoritairement en service. Les pannes matérielles sont donc **isolées**, prise par prise.
 
 ## Suite du projet
 
