@@ -8,7 +8,7 @@ Analyse de la disponibilité des points de recharge pour véhicules électriques
 |---|---|
 | MongoDB 8.3 | Stockage et requêtes (base `belib`) |
 | Navicat Premium | Client graphique pour exécuter les requêtes |
-| Hadoop / MapReduce (Python) | Traitement distribué *(à venir)* |
+| Hadoop 3.4.1 (Docker) | HDFS + YARN, MapReduce en Python (Hadoop Streaming) |
 | Git / GitHub | Versionnement du projet |
 
 ## Structure du dépôt
@@ -17,13 +17,16 @@ Analyse de la disponibilité des points de recharge pour véhicules électriques
 projet-belib-mongodb/
 ├── data/
 │   ├── belib_temps_reel.json            # jeu de données brut (1970 points de charge)
-│   └── synthese_arrondissements.json    # export de la synthèse produite au TP3
+│   ├── synthese_arrondissements.json    # export de la synthèse produite au TP3
+│   ├── belib_clean.jsonl                # données nettoyées, 1 document JSON par ligne (entrée MapReduce)
+│   └── resultat_dispo_hadoop.tsv        # résultat du job MapReduce
+├── docker/                              # cluster Hadoop pseudo-distribué (Dockerfile, docker-compose, conf XML)
 ├── scripts/
 │   ├── mongodb/
 │   │   ├── tp1_exploration_belib.js
 │   │   ├── tp2_nettoyage_belib.js
 │   │   └── tp3_agregations_index_geo.js
-│   └── hadoop/                          # mapper.py / reducer.py (à venir)
+│   └── hadoop/                          # mappers / reducers Python + guide du TP4
 └── README.md
 ```
 
@@ -62,11 +65,24 @@ Filtres (`find`, `$in`, regex), projections, tri, `distinct` et premières agré
 - 31 stations n'ont aucune prise disponible.
 - Une vue `v_stations` a été créée, et une collection `synthese_arrondissements` a été générée avec `$out`.
 
+## TP4 : HDFS et MapReduce en Python
+
+**Démarrer le cluster :** `cd docker`, puis `docker compose up -d --build`. L'interface HDFS est sur http://localhost:9870 et l'interface YARN sur http://localhost:8088.
+
+| Étape | Commande clé | Résultat |
+|---|---|---|
+| Export des données | `mongoexport` sans `--jsonArray` | 1958 lignes dans `belib_clean.jsonl` |
+| Chargement dans HDFS | `hdfs dfs -put` | `/belib/input/belib_clean.jsonl` (1,6 Mo) |
+| Test local | `cat \| mapper \| sort \| reducer` | 20 arrondissements |
+| Job 1 : taux de disponibilité par arrondissement | `mapred streaming` | Résultats identiques à MongoDB (TP3) |
+| Job 2 : points par statut (équivalent du WordCount) | `mapred streaming` | Disponible 1138, Occupé 734, Maintenance 49, Inconnu 37 |
+
+**Conclusion :** MongoDB, le pipeline local et Hadoop donnent exactement les mêmes résultats. Sur un volume aussi petit (1,6 Mo), MongoDB répond en quelques millisecondes, alors qu'un job Hadoop prend environ 25 s à cause du lancement des conteneurs YARN. Hadoop devient intéressant quand les données dépassent la capacité d'une seule machine (de l'ordre du To) : le traitement est alors distribué et tolérant aux pannes.
+
 ## Suite du projet
 
-- [ ] Export des données vers HDFS
-- [ ] MapReduce en Python (Hadoop Streaming) : agrégations par arrondissement et par station
-- [ ] Comparaison des résultats MongoDB et Hadoop
+- [ ] Jobs plus avancés : top stations, analyse de la fraîcheur des données
+- [ ] Visualisation des résultats
 
 ## Source
 

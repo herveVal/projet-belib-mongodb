@@ -1,0 +1,5 @@
+# Les scripts exécutés sous Linux (Docker/Hadoop) doivent garder des fins de ligne LF
+*.sh   text eol=lf
+*.py   text eol=lf
+*.xml  text eol=lf
+Dockerfile text eol=lf

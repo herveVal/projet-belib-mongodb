@@ -1,0 +1,16 @@
+services:
+  hadoop:
+    build: .
+    image: hadoop-belib:3.4.1
+    container_name: hadoop
+    ports:
+      - "9870:9870"   # Interface web HDFS (NameNode)
+      - "8088:8088"   # Interface web YARN (ResourceManager)
+      - "9864:9864"   # Interface web DataNode
+    volumes:
+      - hadoop_data:/data/hadoop   # données HDFS conservées entre les redémarrages
+      - ..:/projet                 # le dossier du projet est visible dans le conteneur
+    restart: unless-stopped
+
+volumes:
+  hadoop_data:
