@@ -22,14 +22,16 @@ projet-belib-mongodb/
 │   ├── resultat_dispo_hadoop.tsv        # résultat du job MapReduce Python (TP4)
 │   ├── paniers_stations.txt             # 1 ligne = 1 station = statuts de ses prises (TP5)
 │   └── resultat_cooccurrence_java.tsv   # résultat du job MapReduce Java (TP5)
+├── carte/                               # carte des stations (HTML interactif + PNG)
 ├── docker/                              # cluster Hadoop pseudo-distribué (Dockerfile, docker-compose, conf XML)
 ├── scripts/
 │   ├── mongodb/
 │   │   ├── tp1_exploration_belib.js
 │   │   ├── tp2_nettoyage_belib.js
 │   │   └── tp3_agregations_index_geo.js
-│   └── hadoop/                          # mappers / reducers Python (TP4), guides TP4 et TP5
-│       └── java/                        # original/ (code de cours) et belib/ (version adaptée)
+│   ├── hadoop/                          # mappers / reducers Python (TP4), guides TP4 et TP5
+│   │   └── java/                        # original/ (code de cours) et belib/ (version adaptée)
+│   └── visualisation/carte_stations.py  # génération de la carte
 └── README.md
 ```
 
@@ -109,10 +111,26 @@ hadoop jar cooc-belib.jar CoocDriver /belib/cooc/input /belib/cooc/output
 - **Statut Inconnu :** quand une prise est *Inconnu*, 88 % des autres prises de la même station le sont aussi. Les pertes de communication touchent donc **des stations entières**.
 - **Maintenance :** les autres prises restent majoritairement en service. Les pannes matérielles sont donc **isolées**, prise par prise.
 
+## Carte des stations
+
+![Carte des stations Belib'](carte/carte_stations.png)
+
+Les 402 stations sont colorées selon leur état :
+- **371 stations** ont au moins une prise disponible ;
+- **23 stations** sont complètes ;
+- **8 stations** sont injoignables (statut inconnu).
+
+La taille de chaque point correspond au nombre de prises de la station. Le cercle bleu représente la requête géographique du TP3 : les bornes disponibles à moins de 1 km de la tour Eiffel.
+
+La **carte interactive** (`carte/carte_stations.html`) permet de zoomer, d'afficher ou de masquer chaque catégorie, et de cliquer sur une station pour voir son adresse et le détail de ses prises. Voici comment la générer :
+```
+pip install folium matplotlib
+python scripts/visualisation/carte_stations.py
+```
+
 ## Suite du projet
 
 - [ ] Jobs plus avancés : top stations, analyse de la fraîcheur des données
-- [ ] Visualisation des résultats
 
 ## Source
 
